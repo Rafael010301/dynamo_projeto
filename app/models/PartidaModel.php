@@ -401,4 +401,132 @@ class PartidaModel
 
         return ((int)$stmt->fetchColumn()) === 0;
     }
+
+    // Constantes de tipos de evento da súmula
+    public const EVENTO_GOL           = 'gol';
+    public const EVENTO_EXCLUSAO_2MIN = 'exclusao_2min';
+    public const EVENTO_AMARELO       = 'cartao_amarelo';
+    public const EVENTO_VERMELHO      = 'cartao_vermelho';
+
+    /**
+     * Registra um novo lance/evento na súmula da partida.
+     *
+     * @param int $partidaId
+     * @param int $jogadorId
+     * @param string $tipo
+     * @param int $minuto
+     * @return int ID do evento registrado
+     * @throws InvalidArgumentException
+     */
+    public function registrarEvento(int $partidaId, int $jogadorId, string $tipo, int $minuto): int
+    {
+        $tiposValidos = [
+            self::EVENTO_GOL,
+            self::EVENTO_EXCLUSAO_2MIN,
+            self::EVENTO_AMARELO,
+            self::EVENTO_VERMELHO
+        ];
+
+        if (!in_array($tipo, $tiposValidos, true)) {
+            throw new InvalidArgumentException("Tipo de evento inválido na súmula.");
+        }
+
+        // RN08: Restrição de minuto (1 a 40)
+        if ($minuto < 1 || $minuto > 40) {
+            throw new InvalidArgumentException("RN08: O minuto do lance deve estar entre 1 e 40.");
+        }
+
+        $sql = "INSERT INTO eventos_sumula (partida_id, jogador_id, tipo, minuto) 
+                VALUES (:partida_id, :jogador_id, :tipo, :minuto)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':partida_id', $partidaId, PDO::PARAM_INT);
+        $stmt->bindValue(':jogador_id', $jogadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', $tipo, PDO::PARAM_STR);
+        $stmt->bindValue(':minuto', $minuto, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int)$this->db->lastInsertId();
+    }
+
+    /**
+     * Remove um evento da súmula pelo ID (estorno/correção de lance).
+     */
+    public function removerEvento(int $eventoId): bool
+    {
+        $sql = "DELETE FROM eventos_sumula WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $eventoId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    /**
+     * Busca um evento específico da súmula pelo ID.
+     */
+    public function buscarEventoPorId(int $eventoId): ?array
+    {
+        $sql = "SELECT es.*, j.nome AS jogador_nome, j.numero_camisa, j.equipe_id 
+                FROM eventos_sumula es 
+                INNER JOIN jogadores j ON es.jogador_id = j.id 
+                WHERE es.id = :id 
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $eventoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $evento = $stmt->fetch();
+        return $evento ?: null;
+    }
+
+    /**
+     * Conta a quantidade de exclusões de 2 minutos aplicadas a um jogador em determinada partida.
+     */
+    public function contarExclusoesJogador(int $partidaId, int $jogadorId): int
+    {
+        $sql = "SELECT COUNT(*) FROM eventos_sumula 
+                WHERE partida_id = :partida_id 
+                  AND jogador_id = :jogador_id 
+                  AND tipo = :tipo";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':partida_id', $partidaId, PDO::PARAM_INT);
+        $stmt->bindValue(':jogador_id', $jogadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', self::EVENTO_EXCLUSAO_2MIN, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Verifica se o atleta já recebeu cartão vermelho (desqualificação) na partida.
+     */
+    public function jogadorTemVermelho(int $partidaId, int $jogadorId): bool
+    {
+        $sql = "SELECT COUNT(*) FROM eventos_sumula 
+                WHERE partida_id = :partida_id 
+                  AND jogador_id = :jogador_id 
+                  AND tipo = :tipo";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':partida_id', $partidaId, PDO::PARAM_INT);
+        $stmt->bindValue(':jogador_id', $jogadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', self::EVENTO_VERMELHO, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return ((int)$stmt->fetchColumn()) > 0;
+    }
+
+    /**
+     * Conta quantos cartões amarelos o atleta já recebeu nesta partida.
+     */
+    public function contarAmarelosJogador(int $partidaId, int $jogadorId): int
+    {
+        $sql = "SELECT COUNT(*) FROM eventos_sumula 
+                WHERE partida_id = :partida_id 
+                  AND jogador_id = :jogador_id 
+                  AND tipo = :tipo";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':partida_id', $partidaId, PDO::PARAM_INT);
+        $stmt->bindValue(':jogador_id', $jogadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', self::EVENTO_AMARELO, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
+    }
 }

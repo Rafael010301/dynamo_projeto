@@ -315,4 +315,31 @@ class EquipeModel
             'motivo'        => $motivo
         ];
     }
+
+    /**
+     * Verifica se já existe uma equipe com o mesmo nome na mesma edição.
+     * Útil para validação de unicidade de nome por edição antes de cadastrar ou atualizar.
+     *
+     * @param string $nome
+     * @param int $edicaoId
+     * @param int|null $ignorarId ID da equipe a ser ignorada (em caso de atualização)
+     * @return bool
+     */
+    public function nomeExisteNaEdicao(string $nome, int $edicaoId, ?int $ignorarId = null): bool
+    {
+        $sql = "SELECT COUNT(*) FROM equipes WHERE edicao_id = :edicao_id AND LOWER(TRIM(nome)) = LOWER(TRIM(:nome))";
+        if ($ignorarId !== null) {
+            $sql .= " AND id != :ignorar_id";
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':edicao_id', $edicaoId, PDO::PARAM_INT);
+        $stmt->bindValue(':nome', trim($nome), PDO::PARAM_STR);
+        if ($ignorarId !== null) {
+            $stmt->bindValue(':ignorar_id', $ignorarId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return ((int)$stmt->fetchColumn()) > 0;
+    }
 }
