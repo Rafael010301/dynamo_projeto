@@ -66,13 +66,23 @@ $scriptAtual  = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= str_ends_with($scriptAtual, '/jogos.php') ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/jogos.php">
-                            <i class="bi bi-calendar-event me-1"></i>Jogos
+                        <a class="nav-link <?= (str_ends_with($scriptAtual, '/partidas.php') || str_ends_with($scriptAtual, '/jogos.php')) ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/partidas.php">
+                            <i class="bi bi-calendar-event me-1"></i>Partidas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= str_ends_with($scriptAtual, '/equipes.php') ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/equipes.php">
+                        <a class="nav-link <?= (str_ends_with($scriptAtual, '/equipes.php') && !str_contains($scriptAtual, '/admin/')) ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/equipes.php">
                             <i class="bi bi-shield-shaded me-1"></i>Equipes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= str_ends_with($scriptAtual, '/artilharia.php') ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/artilharia.php">
+                            <i class="bi bi-fire me-1"></i>Artilharia
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= str_ends_with($scriptAtual, '/historico.php') ? 'active fw-semibold' : '' ?>" href="<?= $baseUrl ?>/historico.php">
+                            <i class="bi bi-clock-history me-1"></i>Histórico
                         </a>
                     </li>
 
